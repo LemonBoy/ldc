@@ -163,6 +163,23 @@ if(MSVC)
     endif()
 endif()
 
+# Build the C++ and D source with LTO enabled if so requested (only works with LDC host compiler)
+if(BUILD_WITH_LTO)
+    if((NOT ${BUILD_WITH_LTO} STREQUAL "thin") AND (NOT ${BUILD_WITH_LTO} STREQUAL "full"))
+        message(FATAL_ERROR "BUILD_WITH_LTO must be 'thin' or 'full'")
+    endif()
+
+    append("-flto=${BUILD_WITH_LTO}" DDMD_DFLAGS)
+    append("-flto=${BUILD_WITH_LTO}" EXTRA_CXXFLAGS)
+    get_filename_component(HOST_LDC_BINDIR ${D_COMPILER} DIRECTORY)
+    if (APPLE)
+        # Explicitly use the LTO library that shipped with the host LDC, assuming it is newer than the system-installed lib.
+        append("-flto=${BUILD_WITH_LTO} -Wl,-lto_library,${HOST_LDC_BINDIR}/../lib/libLTO.dylib" LLVM_LDFLAGS)
+    elseif(UNIX)
+        append("-flto=${BUILD_WITH_LTO}" LLVM_LDFLAGS)
+    endif()
+endif()
+
 append("-J${PROJECT_SOURCE_DIR}/${DDMDFE_PATH}" DDMD_DFLAGS) # Needed for importing text files
 string(STRIP "${DDMD_DFLAGS}" DDMD_DFLAGS)
 
